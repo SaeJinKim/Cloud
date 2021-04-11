@@ -1,0 +1,91 @@
+1. 내가 가지고 있는 자원 
+ 노트북 (cpu : Intel(R) Core(TM) i5 - 9300H @ 2.40GHz)
+	(RAM : 4 GB + 추가 구매16 GB)
+	(Storage : 기본 SSD 280GB + 추가 구매 SSD 480GB)
+	(운영체제 : window 10pro)
+
+2. 가상화에 사용할 하이퍼 바이저 
+ KVM
+
+3. 오픈스택 구축을 위한 방법
+ Manual을 이용한 설치
+서비스가 가능한 사내 클라우드 시스템을 구축할 경우라면 http://docs.openstack.org 에서 제공하는 매뉴얼을 이용한 설치 방법을 권장합니다. 오픈스택의 컴포넌트들을 하나하나 따라가며 설치해야 하는 번거로움이 있지만, 서버가 재 부팅되거나 할 경우에도 서비스를 계속 할 수 있다는 장점이 있습니다. 예전에는 Ubuntu 서버에서만 OpenStack을 설치할 수 있었지만, 근래에는 Debian, SUSE, RedHat, CentOS, Fedora 와 같은 리눅스 서버에서도 설치할 수 있도록 가이드를 제공합니다.
+ -> window OS는 지원하지 않아서 내 노트북을 CentOS, Ubonto를 설치하려고 했으나.. 리눅스에 관한 기본 지식도 없었고, 여러 수많은 에러가 나서.. 결국에 다른 방법을 찾고자 했음.
+
+ VirtualBox를 이용한 설치
+그렇게 찾은 것이 VirtualBox라는 프로그렘을 이용해 VM을 생성하고, VM에 우분투를 올려서 만들기로 함.
+
+ ->  최소 8 GB 메모리 및 20 GB 사용 가능한 스토리지 공간을 가진 Linux, MacOS, 또는 Windows를 실행하는 데스크탑 컴퓨터 또는 랩탑을 필요.(충족)
+ 
+-> IaaS를 구축하기 위한 오픈스택의 필수 컴포넌트 : 
+ Nova : 가상머신의 라이프사이클 관리 (VM생성, 소멸)
+ Neutron: 사용자가 직접 가상머신의 네트워크를 정의할 수 있도록 지원
+ Glance : 가상 머신 생성을 위한 디스크 이미지 제공
+ Keystone : 오픈스택 전반에 걸친 인증과 권한 관리 서비스 제공
+ Cinder : 컴퓨트 노드와 VM에 물리 저장 공간을 제공한다. 
+
+
+-> virtualBox를 이용한 설치 중 오류가 많이 뜨고.devstack을 이용한 설치시 재부팅할때에는 다시 처음부터 설치를 해줘야 한다는 것을 깨닳음. ->다시 manual방식으로 시작. 
+
+
+네트워크 타입 : Neutron
+네트워크 플러그인 ML2
+네트워크 타입 드라이버 GRE
+네트워크 메커니즘 드라이버 : OpenvSwitch
+
+
+ manual
+
+Controller node
+  network device 1 : 호스트 전용 (enp0s3)
+  network device 2 : 브리지모드 (enp0s8)
+  network device 3 : NAT (enp0s9)
+ - 20G 
+ host name : controller
+
+->Controller 노드 네트워크 설정
+vi /etc/network/interfaces
+
+auto enp0s3
+iface enp0s3 inet static
+   address 192.168.56.101
+   netmask 255.255.255.0
+   gateway 192.168.56.1
+   dns-namesrvers 8.8.8.8
+
+auto enp0s8
+iface enp0s8 inet dhcp
+
+auto enp0s9
+iface enp0s9 inet dhcp
+
+
+
+Compute node 
+ network device 1 : 호스트 전용 (enp0s3)
+  network device 2 : 브리지모드 (enp0s8)
+  network device 3 : NAT (enp0s9)
+-disk1 : 8G(block)
+-disk2 : 8G *3 ea(object)
+ host name : compute
+ 
+--> Compute 노드 네트워크 설정
+vi /etc/network/interfaces
+auto enp0s3
+iface enp0s3 inet static
+ address 192.168.56.102
+ netmask 255.255.255.0
+ gateway 192.168.56.1
+ dns-namesrvers 8.8.8.8
+
+auto enp0s8
+iface enp0s8 inet dhcp
+
+auto enp0s9
+iface enp0s9 inet dhcp
+
+-----------------------------------
+각 노드에 hosts파일 설정
+vi /etc/hosts
+192.168.56.101 #controller
+192.168.56.102 #compute
